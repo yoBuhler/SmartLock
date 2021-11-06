@@ -1,10 +1,9 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <SPI.h>
 #include <MFRC522.h>
 
-#define SS_PIN 10
+#define SS_PIN 8
 #define RST_PIN 9
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
@@ -14,28 +13,29 @@ EthernetClient client;
 
 int    HTTP_PORT   = 80;
 String HTTP_METHOD = "GET";
-char   HOST_NAME[] = "example.com";
+char   HOST_NAME[] = "192.168.0.100";
 String PATH_NAME   = "/testKey";
 String queryStringKey = "?key=";
 String queryStringLock = "&lock=";
 
-int ledVerde = 12;
-int ledVermelho = 11;
+int ledVerde = 6;
+int ledVermelho = 5;
 
 void setup() {
   Serial.begin(9600);
-  if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to obtaining an IP address using DHCP");
-    while (true);
-  }
-  SPI.begin();
-  mfrc522.PCD_Init();
 
+
+
+  Serial.println("Aproxime o seu cartao do leitor...");
+  Serial.println();
   pinMode(ledVerde, OUTPUT);
   pinMode(ledVermelho, OUTPUT);
 }
 
 void loop() {
+  SPI.begin();
+  mfrc522.PCD_SoftPowerUp();
+  mfrc522.PCD_Init();
   if ( ! mfrc522.PICC_IsNewCardPresent())
   {
     return;
@@ -54,6 +54,14 @@ void loop() {
     Key.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   Key.toUpperCase();
+  Serial.println(Key);
+
+  mfrc522.PCD_SoftPowerDown();
+  if (Ethernet.begin(mac) == 0) {
+    Serial.println("Failed to obtaining an IP address using DHCP");
+    while (true);
+  }
+
   if (client.connect(HOST_NAME, HTTP_PORT)) {
     Serial.println("Connected to server");
 
@@ -63,7 +71,7 @@ void loop() {
     client.println("Connection: close");
     client.println();
 
-  String readHTTPRequest = "";
+    String readHTTPRequest = "";
 
     while (client.connected()) {
       if (client.available()) {
